@@ -1,0 +1,45 @@
+# General
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.DS_Store
+Thumbs.db
+
+# Virtual Environments
+venv/
+env/
+.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# Machine Learning Data & Models
+# Ignore large data files but keep the directory structure (handled by .gitkeep)
+ml/data/raw/*
+!ml/data/raw/.gitkeep
+ml/data/processed/*
+!ml/data/processed/.gitkeep
+
+# Ignore large model files if necessary (optional - uncomment if models are >100MB)
+# *.pkl
+# *.h5
+# *.tflite
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# System specific
+.monitoring-*
+dump.rdb
+
+# Firmware
+firmware/.pio/
+firmware/build/
+*.bin
+*.elf
+
+# Logs
+*.log
