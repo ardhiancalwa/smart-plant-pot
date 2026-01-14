@@ -9,7 +9,6 @@ MODELS_DIR = os.path.join(BASE_DIR, '../models')
 class SmartPotInference:
     def __init__(self):
         self.rf_model = None
-        self.iso_forest = None
         self.le_plant = None
         self.le_status = None
         self._load_models()
@@ -22,13 +21,6 @@ class SmartPotInference:
                 self.rf_model = joblib.load(rf_path)
             else:
                 print(f"Warning: {rf_path} not found.")
-
-            # Load Isolation Forest Model
-            iso_path = os.path.join(MODELS_DIR, 'isolation_forest_model.pkl')
-            if os.path.exists(iso_path):
-                self.iso_forest = joblib.load(iso_path)
-            else:
-                print(f"Warning: {iso_path} not found.")
 
             # Load Plant Label Encoder
             le_plant_path = os.path.join(MODELS_DIR, 'label_encoder_plant.pkl')
@@ -47,7 +39,8 @@ class SmartPotInference:
 
     def get_plant_analysis(self, plant_name, soil, temp, hum, lux):
         """
-        Predict plant status and detect anomalies.
+        Predict plant status.
+        Anomaly detection has been removed.
         
         Args:
             plant_name (str): Name of the plant.
@@ -57,12 +50,11 @@ class SmartPotInference:
             lux (float): Light intensity value.
             
         Returns:
-            dict: {"status": str, "is_anomaly": bool, "message": str}
+            dict: {"status": str, "message": str}
         """
         # Default response for error cases
         response = {
             "status": "Unknown",
-            "is_anomaly": False,
             "message": "Error in processing"
         }
 
@@ -81,7 +73,7 @@ class SmartPotInference:
             # Prepare features: ensure the order matches training [plant_encoded, soil, temp, hum, lux]
             features = np.array([[plant_encoded, soil, temp, hum, lux]])
 
-            # Predict Status
+            # Predict Status (Classification)
             status_pred = self.rf_model.predict(features)[0]
             
             # Decode status if encoder exists and prediction is likely an index (int/float representation)
@@ -92,20 +84,7 @@ class SmartPotInference:
                 status_str = str(status_pred)
 
             response["status"] = status_str
-
-            # Predict Anomaly (Isolation Forest)
-            # Isolation Forest returns -1 for anomaly, 1 for normal
-            if self.iso_forest:
-                anomaly_pred = self.iso_forest.predict(features)[0]
-                is_anomaly = True if anomaly_pred == -1 else False
-                response["is_anomaly"] = is_anomaly
-
-                if is_anomaly:
-                    response["message"] = f"Anomaly detected for {plant_name}!"
-                else:
-                    response["message"] = f"{plant_name} is in {status_str} state."
-            else:
-                response["message"] = f"{plant_name} is in {status_str} state (Anomaly check skipped)."
+            response["message"] = f"{plant_name} is in {status_str} state."
 
         except Exception as e:
             response["message"] = f"Prediction error: {str(e)}"

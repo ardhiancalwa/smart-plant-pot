@@ -3,7 +3,7 @@
 Dokumentasi teknis ini diperuntukkan bagi **Tim Backend (Flask)** untuk mengintegrasikan modul "Otak" dan "Indra" buatan ke dalam sistem Smart Guardian Pot. 
 
 Modul ini bersifat mandiri (standalone package) yang menangani tiga fungsi kognitif utama:
-1.  **Analytic AI**: Menerjemahkan data sensor menjadi status gamifikasi dan kesehatan tanaman.
+1.  **Analytic AI**: Menerjemahkan data sensor menjadi Status Game (Normal, Thirsty, Sick, dll).
 2.  **Generative AI**: Memberikan kepribadian pada tanaman untuk bercakap-cakap (via Google Gemini).
 3.  **Audio Engine**: Menangani *Speech-to-Text* (Pendengaran) dan *Text-to-Speech* (Suara).
 
@@ -27,7 +27,7 @@ ml/
 ├── src/
 │   ├── __init__.py     # Interface utama package
 │   ├── processor.py    # Pembersihan & Kalibrasi data sensor
-│   ├── inference.py    # Logika prediksi status & anomali
+│   ├── inference.py    # Logika prediksi status tanaman
 │   ├── llm_handler.py  # Chatbot Persona (Gemini API)
 │   └── audio_handler.py# STT (Google) & TTS (Edge-TTS)
 └── requirements_ml.txt # Dependensi Python khusus modul ini
@@ -89,7 +89,7 @@ cleaned = clean_sensor_data(
     raw_lux=raw_data["lux"]
 )
 
-# 3. Analisis AI (Status & Anomali)
+# 3. Analisis AI (Status Only)
 # PENTING: plant_name harus sesuai Data Dictionary!
 analysis = get_plant_analysis(
     plant_name="Lidah Buaya",
@@ -102,7 +102,6 @@ analysis = get_plant_analysis(
 # Contoh Output 'analysis':
 # {
 #   "status": "THIRSTY",
-#   "is_anomaly": False,
 #   "message": "Lidah Buaya is in THIRSTY state."
 # }
 ```
@@ -158,15 +157,17 @@ else:
 ### 2. Status Game (Game Statuses)
 Output dari `analysis["status"]`.
 
-| Status Code | Pemicu Utama | Logika Game (Saran) |
+| Status Code | Pemicu Utama | Logika Game (Backend) |
 | :--- | :--- | :--- |
-| **NORMAL** | Semua sensor dalam range ideal. | `HP +1`, `XP +10` (Happy). |
-| **THIRSTY** | Soil Moisture < Batas Min. | `HP -2` per jam. Tanaman minta minum. |
-| **SICK** | Soil Moisture > Batas Max (Overwatering). | `HP -5` (Cepat mati). Akar busuk. |
+| **NORMAL** | Semua sensor dalam range ideal. | `HP +` (Regen), `XP +`. |
+| **THIRSTY** | Soil Moisture < Batas Min. | `HP -` per jam (Tanaman minta minum). |
+| **SICK** | Soil Moisture > Batas Max (Overwatering). | `HP -` (Sangat Cepat). Akar busuk. |
 | **GLOOMY** | Sensor Cahaya < Batas Min. | Pertumbuhan melambat. |
-| **SQUINT** | Sensor Cahaya > Batas Max (Silau). | `HP -1`, Daun terbakar. |
+| **SQUINT** | Sensor Cahaya > Batas Max (Silau). | `HP -`, Daun terbakar. |
 | **COLD** | Suhu < Batas Min. | Tanaman menggigil. |
-| **HOT** | Suhu > Batas Max. | Penguapan tinggi, `HP -1`. |
+| **HOT** | Suhu > Batas Max. | Penguapan tinggi, `HP -`. |
+
+**Catatan:** Deteksi Anomali sudah dihapus sepenuhnya. Mohon hitung pengurangan HP secara manual di Backend Logic berdasarkan kode status di atas.
 
 ---
 
@@ -176,16 +177,16 @@ Output dari `analysis["status"]`.
 
 **1. `FileNotFoundError` / Path Error**
 *   **Gejala**: Error saat memuat file `.pkl` atau membaca audio.
-*   **Solusi**: Pastikan script Flask dijalankan dari **root directory** proyek (`python app.py`), BUKAN dari dalam folder `ml/` atau `src/`. Modul ini menggunakan relative path yang bergantung pada root context.
+*   **Solusi**: Pastikan script Flask dijalankan dari **root directory** proyek (`python app.py`), BUKAN dari dalam folder `ml/` atau `src/`.
 
 **2. Error Audio / Pydub**
 *   **Gejala**: `RuntimeWarning: Couldn't find ffmpeg or avconv`.
-*   **Solusi**: Anda belum menginstall **FFmpeg** di sistem operasi. Lihat bagian **Instalasi**. Pip install saja tidak cukup, harus install binary system-nya.
+*   **Solusi**: Anda belum menginstall **FFmpeg** di sistem operasi. Lihat bagian **Instalasi**.
 
 **3. Respon Chatbot: "Maaf, aku kehilangan koneksi..."**
 *   **Gejala**: AI selalu menjawab error default.
-*   **Solusi**: Cek file `.env`. Pastikan `GEMINI_API_KEY` terisi dan valid. Pastikan juga server memiliki koneksi internet.
+*   **Solusi**: Cek file `.env`. Pastikan `GEMINI_API_KEY` terisi dan valid.
 
 **4. Prediksi Status Selalu "Unknown"**
 *   **Gejala**: Output status tidak sesuai prediksi.
-*   **Solusi**: Cek ejaan `plant_name`. Jika Anda kirim "Mawar" tapi model dilatih hanya dengan "Bayam", maka akan error. Gunakan tabel **Unsupported Plants**.
+*   **Solusi**: Cek ejaan `plant_name`. Jika Anda kirim "Mawar" tapi model dilatih hanya dengan "Bayam", maka akan error.
