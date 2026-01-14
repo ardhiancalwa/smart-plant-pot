@@ -1,5 +1,6 @@
 import os
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
 # Memuat environment variable
@@ -7,17 +8,15 @@ load_dotenv()
 
 # Konfigurasi API Key
 API_KEY = os.getenv("GEMINI_API_KEY")
-if API_KEY:
-    genai.configure(api_key=API_KEY)
 
 class PlantLLMHandler:
-    def __init__(self, model_name: str = "gemini-1.5-flash"):
+    def __init__(self, model_name: str = "gemini-2.5-flash"):
         self.model_name = model_name
-        # Inisialisasi model jika API Key ada
+        # Inisialisasi Client jika API Key ada
         if API_KEY:
-            self.model = genai.GenerativeModel(model_name)
+            self.client = genai.Client(api_key=API_KEY)
         else:
-            self.model = None
+            self.client = None
 
     def _determine_mood(self, current_hp: float) -> str:
         """Menentukan mood berdasarkan HP."""
@@ -44,7 +43,7 @@ class PlantLLMHandler:
         elif "SQUINT" in analytic_status.upper() or "GLOOMY" in analytic_status.upper():
              status_context += " Cahaya tidak pas (gelap/silau)."
         elif "SICK" in analytic_status.upper():
-            status_context += " Kamu sakit/tidak enak badan."
+            status_context += " Kamu sakit karena TERLALU BANYAK AIR (Overwatering). JANGAN minta air lagi, minta kurangi airnya!"
         else:
             status_context += " Kamu sehat dan senang."
 
@@ -66,24 +65,29 @@ class PlantLLMHandler:
         return prompt
 
     def get_voice_response(self, child_question: str, analytic_status: str, current_hp: float, plant_type: str) -> str:
-        """Menghasilkan respon teks menggunakan Google Gemini."""
-        if not self.model:
+        """Menghasilkan respon teks menggunakan Google Gemini SDK terbaru."""
+        if not self.client:
             return "Maaf, aku kehilangan koneksi ke otakku (API Key belum diset)."
 
+        # Membuat System Instruction & Prompt
         system_instruction = self._construct_system_prompt(plant_type, analytic_status, current_hp)
         
-        # Menggabungkan instruksi sistem dengan pertanyaan anak
-        # Gemini cara kerjanya sedikit beda, prompt digabung jadi satu konteks
-        full_prompt = f"{system_instruction}\n\nAnak Bertanya: \"{child_question}\"\nJawablah sebagai Tanaman:"
+        # Dalam SDK baru, kita bisa define system_instruction secara eksplisit di parameter
+        # Tapi untuk konsistensi chat sederhana, kita gabung di prompt juga baik, 
+        # namun praktik terbaik adalah memisahkan instruction jika possible atau gabung di content.
+        # Disini kita gabungkan saja agar konteks user jelas.
+        full_content = f"{system_instruction}\n\nAnak Bertanya: \"{child_question}\"\nJawablah sebagai Tanaman:"
 
         try:
-            response = self.model.generate_content(
-                full_prompt,
-                generation_config=genai.types.GenerationConfig(
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=full_content,
+                config=types.GenerateContentConfig(
                     temperature=0.7,
-                    max_output_tokens=100, # Membatasi agar jawaban tidak terlalu panjang
+                    max_output_tokens=1000
                 )
             )
+            # Mengakses text response
             return response.text.strip()
         
         except Exception as e:

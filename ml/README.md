@@ -1,95 +1,96 @@
 # 🧠 Smart Guardian Pot - AI & Machine Learning Module
 
-Dokuntasi ini diperuntukkan bagi tim Backend (Flask/Node.js) untuk mengintegrasikan modul Analitik dan Generative AI ke dalam sistem Smart Guardian Pot. Modul ini berfungsi sebagai "otak" yang memproses data sensor mentah dan memberikan kepribadian pada tanaman.
+Dokumentasi teknis ini diperuntukkan bagi **Tim Backend (Flask)** untuk mengintegrasikan modul "Otak" dan "Indra" buatan ke dalam sistem Smart Guardian Pot. 
+
+Modul ini bersifat mandiri (standalone package) yang menangani tiga fungsi kognitif utama:
+1.  **Analytic AI**: Menerjemahkan data sensor menjadi Status Game (Normal, Thirsty, Sick, dll).
+2.  **Generative AI**: Memberikan kepribadian pada tanaman untuk bercakap-cakap (via Google Gemini).
+3.  **Audio Engine**: Menangani *Speech-to-Text* (Pendengaran) dan *Text-to-Speech* (Suara).
+
+---
 
 ## 📋 Daftar Isi
-1. [Overview](#-overview)
+1. [Struktur Direktori](#-struktur-direktori)
 2. [Instalasi & Konfigurasi](#-instalasi--konfigurasi)
-3. [Panduan Integrasi](#-panduan-integrasi)
+3. [Panduan Integrasi (Flask)](#-panduan-integrasi-flask)
 4. [Data Dictionary](#-data-dictionary)
 5. [Troubleshooting](#-troubleshooting)
 
 ---
 
-## 🌟 Overview
+## 📂 Struktur Direktori
 
-Modul ini (`ml/`) terdiri dari dua komponen utama:
-
-1.  **Analytic Engine (`inference.py`)**: Menggunakan model *Machine Learning* (Random Forest & Isolation Forest) untuk mengubah data sensor mentah menjadi status gamifikasi (misal: "THIRSTY") dan mendeteksi anomali kesehatan.
-2.  **Generative AI (`llm_handler.py`)**: Menggunakan **Google Gemini API** untuk memungkinkan tanaman "berbicara" dengan anak, merespon pertanyaan dengan kepribadian yang dinamis sesuai kondisi kesehatannya.
-
-Struktur Direktori:
 ```text
 ml/
-├── data/               # Dataset pelatihan (referensi)
-├── models/             # Model PKL tersimpan (JANGAN DIHAPUS)
-│   ├── smart_pot_model.pkl
-│   ├── isolation_forest_model.pkl
-│   └── *.pkl
+├── data/               # Dataset referensi
+├── models/             # File model (.pkl) dan encoders (JANGAN DIHAPUS)
 ├── src/
-│   ├── __init__.py     # Titik masuk paket (Exports functions)
-│   ├── processor.py    # Pre-processing & Cleaning data sensor
-│   ├── inference.py    # Logika prediksi ML
-│   └── llm_handler.py  # Logika percakapan (LLM)
-└── requirements_ml.txt # Dependensi Python
+│   ├── __init__.py     # Interface utama package
+│   ├── processor.py    # Pembersihan & Kalibrasi data sensor
+│   ├── inference.py    # Logika prediksi status tanaman
+│   ├── llm_handler.py  # Chatbot Persona (Gemini API)
+│   └── audio_handler.py# STT (Google) & TTS (Edge-TTS)
+└── requirements_ml.txt # Dependensi Python khusus modul ini
 ```
 
 ---
 
 ## ⚙️ Instalasi & Konfigurasi
 
-### 1. Instalasi Dependensi
-Pastikan Anda berada di root proyek, lalu jalankan:
+### 1. Instalasi Library Python
+jalankan perintah berikut dari **root directory** proyek:
 
 ```bash
 pip install -r ml/requirements_ml.txt
 ```
 
-Paket utama yang digunakan: `scikit-learn`, `joblib`, `numpy`, `pandas`, `google-generativeai`.
+### 2. Instalasi FFmpeg (WAJIB)
+Modul audio memerlukan **FFmpeg** di level sistem operasi untuk memproses file suara (konversi MP3 <-> WAV).
+*   **Mac (Homebrew):** `brew install ffmpeg`
+*   **Ubuntu/Debian:** `sudo apt update && sudo apt install ffmpeg`
+*   **Windows:** Download binary FFmpeg dan tambahkan ke PATH environment variable.
 
-### 2. Konfigurasi Environment Variables
-Modul ini membutuhkan API Key untuk fitur Chatbot. Tambahkan ke file `.env` di root proyek Anda:
+### 3. Konfigurasi Environment Variables
+Buat atau update file `.env` di root proyek Anda untuk mengaktifkan fitur chat:
 
 ```env
 GEMINI_API_KEY=Isi_Dengan_API_Key_Google_Gemini_Anda
 ```
 
-Tanpa key ini, fitur `get_voice_response` akan mengembalikan pesan error default.
-
 ---
 
-## 💻 Panduan Integrasi
+## 💻 Panduan Integrasi (Flask)
 
-Anda dapat mengimpor tiga fungsi utama langsung dari paket `ml.src`.
+Anda dapat mengimpor semua fungsi utama langsung dari namespace `ml.src`:
 
 ```python
-from ml.src import clean_sensor_data, get_plant_analysis, get_voice_response
+from ml.src import (
+    clean_sensor_data, 
+    get_plant_analysis, 
+    get_voice_response,
+    transcribe_audio,
+    text_to_speech
+)
 ```
 
-### Skenario 1: Memproses Data Sensor (Loop Utama)
-Gunakan ini setiap kali data sensor baru diterima dari ESP32. Alur kerjanya adalah: **Menerima Raw Data -> Cleaning -> Prediksi AI**.
+### Skenario 1: Loop Pemrosesan Sensor (IoT)
+Gunakan alur ini saat Backend menerima data JSON dari ESP32 (via MQTT/HTTP).
 
 ```python
-# 1. Terima data mentah dari MQTT/HTTP
-raw_data = {
-    "soil": 2400,   # Nilai ADC (Contoh)
-    "temp": 28.5,   # Celcius
-    "hum": 60.0,    # Persen
-    "lux": 150.0    # Lux
-}
+# 1. Terima data mentah
+raw_data = {"soil": 2400, "temp": 28.5, "hum": 60.0, "lux": 150.0}
 
-# 2. Bersihkan dan Normalisasi Data
+# 2. Cleaning & Kalibrasi
+# Mengubah nilai voltase/raw menjadi satuan manusia (%, Celcius, Lux)
 cleaned = clean_sensor_data(
     raw_soil=raw_data["soil"],
     raw_temp=raw_data["temp"],
     raw_hum=raw_data["hum"],
     raw_lux=raw_data["lux"]
 )
-# Output 'cleaned': 
-# {'soil_percent': 65.3, 'temperature': 28.5, 'humidity': 60.0, 'lux': 150.0}
 
-# 3. Dapatkan Analisis AI (Status & Anomali)
-# PENTING: Nama tanaman harus sesuai dengan Data Dictionary di bawah.
+# 3. Analisis AI (Status Only)
+# PENTING: plant_name harus sesuai Data Dictionary!
 analysis = get_plant_analysis(
     plant_name="Lidah Buaya",
     soil=cleaned["soil_percent"],
@@ -98,62 +99,75 @@ analysis = get_plant_analysis(
     lux=cleaned["lux"]
 )
 
-print(analysis)
+# Contoh Output 'analysis':
+# {
+#   "status": "THIRSTY",
+#   "message": "Lidah Buaya is in THIRSTY state."
+# }
 ```
 
-**Contoh Output `analysis`:**
-```json
-{
-  "status": "NORMAL",
-  "is_anomaly": false,
-  "message": "Lidah Buaya is in NORMAL state."
-}
-```
-
-### Skenario 2: Interaksi Suara (Chatbot)
-Gunakan ini ketika frontend mengirimkan input suara (STT) dari anak.
+### Skenario 2: Interaksi Suara (Voice Chat)
+Gunakan alur ini saat Frontend mengupload file rekaman suara anak.
 
 ```python
-voice_reply = get_voice_response(
-    child_question="Halo Guardian, kamu haus tidak?",
-    analytic_status="THIRSTY",  # Didapat dari hasil analisis sebelumnya
-    current_hp=45.0,            # Health Point saat ini (dari database game logic)
-    plant_type="Lidah Buaya"
-)
+# Path file input (dari upload user) dan output (untuk response)
+input_audio_path = "uploads/suara_anak.wav" 
+output_audio_path = "static/audio/response_tanaman.mp3"
 
-print(voice_reply)
+# 1. Transkripsi Suara (STT)
+child_text = transcribe_audio(input_audio_path)
+
+if not child_text:
+    print("Suara tidak jelas.")
+else:
+    # 2. Dapatkan Jawaban AI (Berdasarkan kondisi tanaman terakhir)
+    # Gunakan data status terakhir dari database/cache
+    ai_reply_text = get_voice_response(
+        child_question=child_text,
+        analytic_status="THIRSTY",  # Contoh status saat ini
+        current_hp=60.0,            # Contoh HP saat ini
+        plant_type="Lidah Buaya"
+    )
+
+    # 3. Konversi Jawaban ke Suara (TTS)
+    success = text_to_speech(ai_reply_text, output_audio_path)
+
+    if success:
+        return jsonify({
+            "user_text": child_text,
+            "bot_text": ai_reply_text,
+            "audio_url": "/static/audio/response_tanaman.mp3"
+        })
 ```
-
-**Contoh Output `voice_reply`:**
-> "Halo teman kecil... Aku haus sekali nih.. Daunku rasanya kering. Boleh minta tolong siram aku sedikit?"
 
 ---
 
 ## 📚 Data Dictionary
 
-### 1. Daftar Tanaman yang Didukung
-Pastikan input `plant_name` persis seperti tabel di bawah (Case Sensitive) karena digunakan oleh Label Encoder.
+### 1. Daftar Tanaman (Supported Plants)
+*Case Sensitive*. Input nama tanaman ke fungsi `get_plant_analysis` **HARUS** persis salah satu dari ini:
 
-| Nama Tanaman (Input String) | Keterangan |
-|Data Dictionary| |
+| Nama Tanaman | Karakteristik |
 | :--- | :--- |
-| **Bayam** | Tanaman sayur, rentan terhadap panas. |
-| **Kacang Hijau** | Sering digunakan untuk eksperimen sekolah. |
-| **Sirih Gading** | Tanaman hias dalam ruangan. |
-| **Lidah Buaya** | Tanaman tahan kering (Succulent). |
+| **Bayam** | Butuh air sedang, tidak tahan panas ekstrem. |
+| **Kacang Hijau** | Tumbuh cepat, sensitif pada cahaya. |
+| **Sirih Gading** | Tanaman hias, toleransi cahaya rendah. |
+| **Lidah Buaya** | Tahan kering (Succulent), butuh cahaya terang. |
 
-### 2. Status Game (Output Prediksi)
-Model akan memprediksi salah satu status berikut berdasarkan kondisi lingkungan.
+### 2. Status Game (Game Statuses)
+Output dari `analysis["status"]`.
 
-| Status Code | Kondisi Pemicu (General) | Implikasi Game |
+| Status Code | Pemicu Utama | Logika Game (Backend) |
 | :--- | :--- | :--- |
-| **NORMAL** | Semua parameter ideal. | HP Regen, XP Bonus. |
-| **THIRSTY** | Kelembapan tanah rendah (< Batas aman). | HP berkurang perlahan. |
-| **SICK** | Kelembapan tanah TERLALU TINGGI (Overwatering). | HP berkurang cepat (Akar busuk). |
-| **GLOOMY** | Cahaya kurang (Gelap). | Pertumbuhan terhambat. |
-| **SQUINT** | Cahaya berlebih (Terlalu terik). | Daun terbakar, HP berkurang. |
-| **COLD** | Suhu ruangan terlalu dingin. | - |
-| **HOT** | Suhu ruangan terlalu panas. | Penguapan tinggi. |
+| **NORMAL** | Semua sensor dalam range ideal. | `HP +` (Regen), `XP +`. |
+| **THIRSTY** | Soil Moisture < Batas Min. | `HP -` per jam (Tanaman minta minum). |
+| **SICK** | Soil Moisture > Batas Max (Overwatering). | `HP -` (Sangat Cepat). Akar busuk. |
+| **GLOOMY** | Sensor Cahaya < Batas Min. | Pertumbuhan melambat. |
+| **SQUINT** | Sensor Cahaya > Batas Max (Silau). | `HP -`, Daun terbakar. |
+| **COLD** | Suhu < Batas Min. | Tanaman menggigil. |
+| **HOT** | Suhu > Batas Max. | Penguapan tinggi, `HP -`. |
+
+**Catatan:** Deteksi Anomali sudah dihapus sepenuhnya. Mohon hitung pengurangan HP secara manual di Backend Logic berdasarkan kode status di atas.
 
 ---
 
@@ -161,18 +175,18 @@ Model akan memprediksi salah satu status berikut berdasarkan kondisi lingkungan.
 
 ### Masalah Umum
 
-**1. `FileNotFoundError` saat memuat model (.pkl)**
-*   **Penyebab**: Script Python dijalankan dari direktori yang salah, sehingga path relative ke folder `models/` rusak.
-*   **Solusi**: Pastikan Anda menjalankan aplikasi utama (misal `app.py`) dari **root directory** proyek. Modul `inference.py` menggunakan `os.path.abspath(__file__)` untuk mencoba menangani ini, tapi struktur folder harus tetap dijaga.
+**1. `FileNotFoundError` / Path Error**
+*   **Gejala**: Error saat memuat file `.pkl` atau membaca audio.
+*   **Solusi**: Pastikan script Flask dijalankan dari **root directory** proyek (`python app.py`), BUKAN dari dalam folder `ml/` atau `src/`.
 
-**2. Respon Chatbot: "Maaf, aku kehilangan koneksi..."**
-*   **Penyebab**: `GEMINI_API_KEY` belum diset atau salah, atau kuota API habis.
-*   **Solusi**: Cek file `.env`, pastikan key valid. Cek koneksi internet server.
+**2. Error Audio / Pydub**
+*   **Gejala**: `RuntimeWarning: Couldn't find ffmpeg or avconv`.
+*   **Solusi**: Anda belum menginstall **FFmpeg** di sistem operasi. Lihat bagian **Instalasi**.
 
-**3. Output Status selalu "Unknown" atau Error**
-*   **Penyebab**: Kemungkinan nama tanaman yang diinput tidak ada di daftar *Label Encoder*.
-*   **Solusi**: Pastikan ejaan `plant_name` persis dengan [Daftar Tanaman yang Didukung](#1-daftar-tanaman-yang-didukung).
+**3. Respon Chatbot: "Maaf, aku kehilangan koneksi..."**
+*   **Gejala**: AI selalu menjawab error default.
+*   **Solusi**: Cek file `.env`. Pastikan `GEMINI_API_KEY` terisi dan valid.
 
-**4. Data Sensor aneh (misal Soil -50%)**
-*   **Penyebab**: Kabel sensor terlepas atau belum dikalibrasi.
-*   **Solusi**: Fungsi `clean_sensor_data` sudah memilik *clamping* (batas min 0, max 100), tapi cek hardware fisik Anda jika nilai mentah (`raw`) konstan di 0 atau 4095.
+**4. Prediksi Status Selalu "Unknown"**
+*   **Gejala**: Output status tidak sesuai prediksi.
+*   **Solusi**: Cek ejaan `plant_name`. Jika Anda kirim "Mawar" tapi model dilatih hanya dengan "Bayam", maka akan error.
