@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/presentation/widgets/liquid_background.dart';
+import '../../../../core/presentation/widgets/glass_scaffold.dart';
 import '../../domain/models/activity_model.dart';
 import '../providers/activity_provider.dart';
 import '../widgets/glass_activity_tile.dart';
@@ -13,72 +13,66 @@ class ActivityScreen extends ConsumerWidget {
     final activities = ref.watch(dummyActivityProvider);
     final groupedActivities = _groupActivitiesByDate(activities);
 
-    return Scaffold(
-      extendBodyBehindAppBar: true, // For liquid background
-      appBar: AppBar(
-        title: const Text('Activity Log'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        titleTextStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          fontFamily: 'Poppins',
-        ),
-      ),
-      body: LiquidBackground(
-        child: groupedActivities.isEmpty
-            ? const Center(
-                child: Text('No Activities',
-                    style: TextStyle(color: Colors.white)))
-            : ListView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 120, 16, 100),
-                itemCount: groupedActivities.keys.length,
-                itemBuilder: (context, index) {
-                  final date = groupedActivities.keys.elementAt(index);
-                  final items = groupedActivities[date]!;
+    return GlassScaffold(
+      title: 'Activity Log',
+      body: groupedActivities.isEmpty
+          ? const Center(
+              child: Text(
+                'No Activities',
+                style: TextStyle(color: Colors.white),
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
+              itemCount: groupedActivities.keys.length,
+              itemBuilder: (context, index) {
+                final date = groupedActivities.keys.elementAt(index);
+                final items = groupedActivities[date]!;
 
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16.0, top: 8.0),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0, top: 8.0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
                             color: Colors.white.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.1)),
                           ),
-                          child: Text(
-                            date,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
+                        ),
+                        child: Text(
+                          date,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
                           ),
                         ),
                       ),
-                      ...items.map((activity) {
-                        final isLastInGroup = activity == items.last;
-                        return GlassActivityTile(
-                          activity: activity,
-                          isLast: isLastInGroup,
-                        );
-                      }),
-                    ],
-                  );
-                },
-              ),
-      ),
+                    ),
+                    ...items.map((activity) {
+                      final isLastInGroup = activity == items.last;
+                      return GlassActivityTile(
+                        activity: activity,
+                        isLast: isLastInGroup,
+                      );
+                    }),
+                  ],
+                );
+              },
+            ),
     );
   }
 
   Map<String, List<ActivityModel>> _groupActivitiesByDate(
-      List<ActivityModel> activities) {
+    List<ActivityModel> activities,
+  ) {
     Map<String, List<ActivityModel>> groups = {};
     for (var activity in activities) {
       final dateKey = _getDateLabel(activity.timestamp);

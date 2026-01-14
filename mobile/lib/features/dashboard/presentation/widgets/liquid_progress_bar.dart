@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LiquidProgressBar extends StatelessWidget {
   final String label;
@@ -24,7 +25,7 @@ class LiquidProgressBar extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: GoogleFonts.poppins(
                 color: Colors.white70,
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
@@ -32,14 +33,14 @@ class LiquidProgressBar extends StatelessWidget {
             ),
             Text(
               valueText ?? '${(value * 100).toInt()}%',
-              style: TextStyle(
+              style: GoogleFonts.poppins(
                 color: baseColor,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
                 shadows: [
                   Shadow(
                     color: baseColor.withValues(alpha: 0.6),
-                    blurRadius: 8,
+                    blurRadius: 2,
                   ),
                 ],
               ),
@@ -64,29 +65,28 @@ class LiquidProgressBar extends StatelessWidget {
           ),
           child: Stack(
             children: [
-              LayoutBuilder(builder: (context, constraints) {
-                return Container(
-                  width: constraints.maxWidth * value.clamp(0.0, 1.0),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    gradient: LinearGradient(
-                      colors: [
-                        baseColor.withValues(alpha: 0.6),
-                        baseColor,
-                      ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: baseColor.withValues(alpha: 0.6),
-                        blurRadius: 10,
-                        spreadRadius: 1,
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  return Container(
+                    width: constraints.maxWidth * value.clamp(0.0, 1.0),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      gradient: LinearGradient(
+                        colors: [baseColor.withValues(alpha: 0.6), baseColor],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
                       ),
-                    ],
-                  ),
-                );
-              }),
+                      boxShadow: [
+                        BoxShadow(
+                          color: baseColor.withValues(alpha: 0.6),
+                          blurRadius: 10,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
               // Highlight reflection line on top
               Positioned(
                 top: 2,

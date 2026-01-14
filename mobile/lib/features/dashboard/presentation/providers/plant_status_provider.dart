@@ -7,7 +7,7 @@ final dummyPlantStatusProvider = Provider<PlantStatus>((ref) {
     avatarUrl:
         "assets/images/plant_avatar_placeholder.png", // We'll handle this missing asset by using an Icon if load fails, or just use it as logic trigger
     healthScore: 85,
-    moistureLevel: 45,
+    moistureLevel: 50,
     lightLevel: 90,
     statusMessage: "Aku haus, tapi sehat!",
   );

@@ -66,7 +66,9 @@ class GlassChatBubble extends StatelessWidget {
                       ],
                     ),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -76,15 +78,19 @@ class GlassChatBubble extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.play_circle_fill,
-                                    color: glowColor, size: 20),
+                                Icon(
+                                  Icons.play_circle_fill,
+                                  color: glowColor,
+                                  size: 20,
+                                ),
                                 const SizedBox(width: 8),
                                 // Dummy Waveform
                                 Row(
                                   children: List.generate(5, (index) {
                                     return Container(
                                       margin: const EdgeInsets.symmetric(
-                                          horizontal: 1),
+                                        horizontal: 1,
+                                      ),
                                       width: 3,
                                       height: 10 + (index % 3) * 5.0,
                                       decoration: BoxDecoration(
@@ -97,7 +103,8 @@ class GlassChatBubble extends StatelessWidget {
                                 const SizedBox(width: 8),
                                 Text(
                                   _formatDuration(
-                                      message.audioDuration ?? Duration.zero),
+                                    message.audioDuration ?? Duration.zero,
+                                  ),
                                   style: TextStyle(
                                     color: glowColor,
                                     fontSize: 10,

@@ -57,16 +57,13 @@ class LiquidBackground extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       child: BackdropFilter(
         filter: ImageFilter.blur(
-            sigmaX: 50.0, sigmaY: 50.0), // Heavy blur for "liquid" look
-        child: Container(
-          color: Colors.transparent,
-        ),
+          sigmaX: 20.0,
+          sigmaY: 20.0,
+        ), // Less blur for better accessibility
+        child: Container(color: Colors.transparent),
       ),
     );
   }

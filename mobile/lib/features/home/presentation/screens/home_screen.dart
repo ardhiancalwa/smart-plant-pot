@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../dashboard/presentation/screens/dashboard_screen.dart';
 import '../../../activity/presentation/screens/activity_screen.dart';
 import '../../../education/presentation/screens/education_screen.dart';
+import '../../../profile/presentation/screens/profile_screen.dart';
 
 class HomeNavNotifier extends Notifier<int> {
   @override
@@ -12,8 +13,9 @@ class HomeNavNotifier extends Notifier<int> {
   void setIndex(int index) => state = index;
 }
 
-final homeNavIndexProvider =
-    NotifierProvider<HomeNavNotifier, int>(HomeNavNotifier.new);
+final homeNavIndexProvider = NotifierProvider<HomeNavNotifier, int>(
+  HomeNavNotifier.new,
+);
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -26,69 +28,112 @@ class HomeScreen extends ConsumerWidget {
       DashboardScreen(),
       ActivityScreen(),
       EducationScreen(),
+      ProfileScreen(),
     ];
 
     return Scaffold(
       extendBody: true, // Important for glass effect over body
-      body: IndexedStack(
-        index: currentIndex,
-        children: screens,
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.2),
-          backgroundBlendMode: BlendMode.srcOver,
-        ),
-        child: ClipRRect(
-          // borderRadius: const BorderRadius.vertical(top: Radius.circular(20)), // Optional
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: NavigationBarTheme(
-              data: NavigationBarThemeData(
-                labelTextStyle: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return const TextStyle(
-                        color: Color(0xFF39FF14), fontWeight: FontWeight.bold);
-                  }
-                  return const TextStyle(color: Colors.white70);
-                }),
-                iconTheme: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return const IconThemeData(
-                        color: Colors.black); // Contrast on green
-                  }
-                  return const IconThemeData(color: Colors.white70);
-                }),
-                indicatorColor: const Color(0xFF39FF14), // Neon Green pill
-                backgroundColor: Colors.transparent, // Transparent base
+      body: IndexedStack(index: currentIndex, children: screens),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          height: 70,
+          margin: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(40),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 20,
+                spreadRadius: 2,
+                offset: const Offset(0, 5),
               ),
-              child: NavigationBar(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                selectedIndex: currentIndex,
-                onDestinationSelected: (index) {
-                  ref.read(homeNavIndexProvider.notifier).setIndex(index);
-                },
-                destinations: const [
-                  NavigationDestination(
-                    icon: Icon(Icons.dashboard_outlined),
-                    selectedIcon: Icon(Icons.dashboard),
-                    label: 'Dashboard',
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(40),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(40),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    width: 1,
                   ),
-                  NavigationDestination(
-                    icon: Icon(Icons.list_alt_outlined),
-                    selectedIcon: Icon(Icons.list_alt),
-                    label: 'Activity',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.school_outlined),
-                    selectedIcon: Icon(Icons.school),
-                    label: 'Education',
-                  ),
-                ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildNavItem(
+                      context,
+                      ref,
+                      index: 0,
+                      icon: Icons.eco_outlined,
+                      activeIcon: Icons.eco,
+                      isSelected: currentIndex == 0,
+                    ),
+                    _buildNavItem(
+                      context,
+                      ref,
+                      index: 1,
+                      icon: Icons.list_alt_outlined,
+                      activeIcon: Icons.list_alt,
+                      isSelected: currentIndex == 1,
+                    ),
+                    _buildNavItem(
+                      context,
+                      ref,
+                      index: 2,
+                      icon: Icons.forum_outlined,
+                      activeIcon: Icons.forum,
+                      isSelected: currentIndex == 2,
+                    ),
+                    _buildNavItem(
+                      context,
+                      ref,
+                      index: 3,
+                      icon: Icons.person_outline,
+                      activeIcon: Icons.person,
+                      isSelected: currentIndex == 3,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(
+    BuildContext context,
+    WidgetRef ref, {
+    required int index,
+    required IconData icon,
+    required IconData activeIcon,
+    required bool isSelected,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        ref.read(homeNavIndexProvider.notifier).setIndex(index);
+      },
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF39FF14) : Colors.transparent,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          isSelected ? activeIcon : icon,
+          color: isSelected ? Colors.black : Colors.white70,
+          size: 26,
         ),
       ),
     );
